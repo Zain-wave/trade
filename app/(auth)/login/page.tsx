@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
@@ -18,6 +18,14 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [debugInfo, setDebugInfo] = useState<string | null>(null)
+  const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '')
+  
+  useEffect(() => {
+    const urlDebug = searchParams.get('debug_info')
+    if (urlDebug) setDebugInfo(decodeURIComponent(urlDebug))
+  }, [])
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -47,11 +55,10 @@ export default function LoginPage() {
     setIsLoading(true)
     const redirectUrl = process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL 
       || `${window.location.origin}/auth/callback`
-    console.log('Google OAuth redirectTo:', redirectUrl)
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: redirectUrl,
+        redirectTo: redirectUrl + '?debug=1',
       },
     })
     if (error) {
@@ -117,6 +124,13 @@ export default function LoginPage() {
           <Alert variant="destructive" className="mb-4">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {/* Debug Info */}
+        {debugInfo && (
+          <Alert className="mb-4 bg-blue-50 border-blue-500">
+            <AlertDescription className="text-xs font-mono">{debugInfo}</AlertDescription>
           </Alert>
         )}
 

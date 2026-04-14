@@ -5,29 +5,32 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/dashboard'
+  const debug = searchParams.get('debug') === '1'
 
-  console.log('Callback received:', { code: code ? 'present' : 'missing', origin, next })
-  
-  if (code) {
-    const supabase = await createClient()
-    console.log('Attempting to exchange code...')
-    const { error, data } = await supabase.auth.exchangeCodeForSession(code)
-    console.log('Exchange result:', { error: error?.message, hasSession: !!data?.session })
-    
-    if (error) {
-      console.error('OAuth exchange error:', error.message, error.name)
-      return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(error.message)}`)
+  if (!code) {
+    const errorMsg = 'No code provided in callback'
+    if (debug) {
+      return NextResponse.redirect(`${origin}/login?error=${errorMsg}&debug_info=${errorMsg}&full_url=${encodeURIComponent(request.nextUrl.href)}`)
     }
-    
-    if (data?.session) {
-      console.log('Session created, redirecting to:', next)
-      return NextResponse.redirect(`${origin}${next}`)
-    }
-    
-    console.log('No session in data, redirecting to login')
-  } else {
-    console.log('No code provided')
+    return NextResponse.redirect(`${origin}/login?error=${errorMsg}`)
   }
 
-  return NextResponse.redirect(`${origin}/login?error=auth_callback_error`)
+  if (debug) {
+    return NextResponse.redirect(`${origin}/login?debug_info=Got code, attempting exchange&code_present=true`)
+  }
+
+  const supabase = await createClient()
+  const { error, data } = await supabase.auth.exchangeCodeForSession(code)
+
+  if (error) {
+    const errorMsg = `Exchange failed: ${error.message}`
+    console.error('OAuth error:', error.message)
+    return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(errorMsg)}`)
+  }
+
+  if (data?.session) {
+    return NextResponse.redirect(`${origin}${next}`)
+  }
+
+  return NextResponse.redirect(`${origin}/login?error=No session created after exchange`)
 }
