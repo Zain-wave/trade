@@ -51,19 +51,19 @@ export default function LoginPage() {
     router.push("/dashboard")
   }
 
-  const handleGoogleLogin = async () => {
-    setIsLoading(true)
-    const { error } = await supabase.auth.signInWithRedirect({
-      provider: "google",
-      options: {
-        redirectTo: 'https://trade-cy1mbprel-zains-projects-dc66372d.vercel.app/auth/callback'
-      }
-    })
-    if (error) {
-      setError(error.message)
-      setIsLoading(false)
-    }
+const handleGoogleLogin = async () => {
+  setIsLoading(true)
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${window.location.origin}/auth/callback`,
+    },
+  })
+  if (error) {
+    setError(error.message)
+    setIsLoading(false)
   }
+}
 
   return (
     <div className="relative z-10">
