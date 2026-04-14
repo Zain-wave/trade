@@ -16,21 +16,25 @@ export async function GET(request: NextRequest) {
   }
 
   if (debug) {
-    return NextResponse.redirect(`${origin}/login?debug_info=Got code, attempting exchange&code_present=true`)
+    return NextResponse.redirect(`${origin}/login?debug_info=Got code, attempting exchange`)
   }
 
   const supabase = await createClient()
+  console.log('Exchanging code:', code.substring(0, 10) + '...')
   const { error, data } = await supabase.auth.exchangeCodeForSession(code)
+  console.log('Exchange result:', { error: error?.message, hasSession: !!data?.session, sessionUser: data?.session?.user?.id })
 
   if (error) {
-    const errorMsg = `Exchange failed: ${error.message}`
-    console.error('OAuth error:', error.message)
+    const errorMsg = `Exchange failed: ${error.message} (${error.name})`
+    console.error('OAuth error:', error.message, error.name)
     return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(errorMsg)}`)
   }
 
   if (data?.session) {
+    console.log(' SUCCESS! Session created for:', data.session.user.id)
     return NextResponse.redirect(`${origin}${next}`)
   }
 
+  console.log('No session in data')
   return NextResponse.redirect(`${origin}/login?error=No session created after exchange`)
 }
