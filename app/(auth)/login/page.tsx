@@ -53,12 +53,11 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     setIsLoading(true)
-    const redirectUrl = process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL 
-      || `${window.location.origin}/auth/callback`
+    const redirectUrl = 'https://trade-cy1mbprel-zains-projects-dc66372d.vercel.app/auth/callback?debug=1'
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: redirectUrl + '?debug=1',
+        redirectTo: redirectUrl,
       },
     })
     if (error) {
