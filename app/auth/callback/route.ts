@@ -2,8 +2,13 @@ import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
-  const { origin } = request.nextUrl
+  const { searchParams, origin } = request.nextUrl
+  const code = searchParams.get('code')
   
+  if (!code) {
+    return NextResponse.redirect(`${origin}/login?error=no_code`)
+  }
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -22,10 +27,9 @@ export async function GET(request: NextRequest) {
     }
   )
 
-  const { data: { session }, error } = await supabase.auth.getSession()
+  const { data: { session }, error } = await supabase.auth.exchangeCodeForSession(code)
 
   if (error) {
-    console.error('Session error:', error.message)
     return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(error.message)}`)
   }
 
@@ -33,5 +37,5 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/dashboard`)
   }
 
-  return NextResponse.redirect(`${origin}/login`)
+  return NextResponse.redirect(`${origin}/login?error=no_session`)
 }
