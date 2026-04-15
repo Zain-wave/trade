@@ -41,6 +41,7 @@ import {
   EyeOff,
 } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { DepositModal } from "@/components/deposit-modal"
 
 export function WalletContent() {
   const searchParams = useSearchParams()
@@ -75,6 +76,7 @@ export function WalletContent() {
   const [holdings, setHoldings] = useState<any[]>([])
 
   // Add payment method state
+  const [depositModalOpen, setDepositModalOpen] = useState(false)
   const [addMethodDialogOpen, setAddMethodDialogOpen] = useState(false)
   const [newMethodType, setNewMethodType] = useState("")
   const [newMethodDetails, setNewMethodDetails] = useState({
@@ -354,7 +356,7 @@ export function WalletContent() {
             <CardDescription>Quick Actions</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Button className="w-full justify-start" onClick={() => setActiveTab("deposit")}>
+            <Button className="w-full justify-start" onClick={() => setDepositModalOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Deposit
             </Button>
@@ -665,107 +667,51 @@ export function WalletContent() {
           </Card>
         </TabsContent>
 
-        {/* Deposit Tab */}
+{/* Deposit Tab */}
         <TabsContent value="deposit">
           <Card>
             <CardHeader>
               <CardTitle>Deposit Funds</CardTitle>
-              <CardDescription>Add funds to your USDT balance</CardDescription>
+              <CardDescription>Add funds to your USDT balance via Stripe or MercadoPago</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              {depositSuccess && (
-                <Alert className="border-green-500/50 bg-green-500/10">
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  <AlertTitle>Deposit Initiated</AlertTitle>
-                  <AlertDescription>
-                    Your deposit is being processed. It may take a few minutes to reflect in your
-                    balance.
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Amount (USD)</label>
-                <Input
-                  type="number"
-                  placeholder="0.00"
-                  value={depositAmount}
-                  onChange={(e) => setDepositAmount(e.target.value)}
-                  className="font-mono text-lg"
-                />
-                <div className="flex gap-2">
-                  {[100, 500, 1000, 5000].map((amount) => (
-                    <Button
-                      key={amount}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setDepositAmount(amount.toString())}
-                    >
-                      ${amount}
-                    </Button>
-                  ))}
-                </div>
+            <CardContent className="flex flex-col items-center gap-6 py-10">
+              <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                <Plus className="w-8 h-8 text-emerald-400" />
               </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Payment Method</label>
-                {paymentMethods.length === 0 ? (
-                  <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>No payment methods</AlertTitle>
-                    <AlertDescription>
-                      Please add a payment method first to make deposits.
-                    </AlertDescription>
-                  </Alert>
-                ) : (
-                  <Select value={depositMethod} onValueChange={setDepositMethod}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select payment method" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {paymentMethods.map((method) => (
-                        <SelectItem key={method.id} value={method.id}>
-                          <div className="flex items-center gap-2">
-                            {getMethodIcon(method.type)}
-                            <span className="capitalize">{method.type}</span>
-                            <span className="text-muted-foreground">
-                              {method.type === "card" && `•••• ${method.details?.last_four}`}
-                              {method.type === "bank" && `•••• ${method.details?.account_last_four}`}
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
+              <div className="text-center">
+                <p className="font-semibold text-lg">Add funds to your wallet</p>
+                <p className="text-muted-foreground text-sm mt-1">
+                  Deposit via credit card or MercadoPago. Funds are available instantly.
+                </p>
               </div>
-
-              <div className="rounded-lg bg-muted p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Processing Fee</span>
-                  <span className="font-mono">$0.00</span>
-                </div>
-                <div className="mt-2 flex items-center justify-between font-medium">
-                  <span>You will receive</span>
-                  <span className="font-mono text-lg">
-                    {formatCurrency(parseFloat(depositAmount) || 0)} USDT
-                  </span>
-                </div>
+              <div className="flex flex-wrap justify-center gap-2">
+                {[50, 100, 250, 500].map(preset => (
+                  <div key={preset} className="px-4 py-2 rounded-lg border border-white/10 bg-white/5 font-mono text-sm">
+                    ${preset}
+                  </div>
+                ))}
               </div>
-
               <Button
-                className="w-full"
+                className="bg-emerald-500 hover:bg-emerald-400 text-black font-semibold px-8"
                 size="lg"
-                onClick={handleDeposit}
-                disabled={
-                  !depositAmount ||
-                  !depositMethod ||
-                  depositLoading ||
-                  parseFloat(depositAmount) <= 0
-                }
+                onClick={() => setDepositModalOpen(true)}
               >
-                {depositLoading ? "Processing..." : "Deposit Funds"}
+                <Plus className="mr-2 h-4 w-4" />
+                Add Funds
               </Button>
+              <DepositModal
+                open={depositModalOpen}
+                onClose={() => {
+                  setDepositModalOpen(false)
+                  // Refrescar wallet después de depositar
+                  supabase
+                    .from("wallets")
+                    .select("*")
+                    .eq("user_id", userId ?? "")
+                    .single()
+                    .then(({ data }) => { if (data) setWallet(data) })
+                }}
+              />
             </CardContent>
           </Card>
         </TabsContent>
